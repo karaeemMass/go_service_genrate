@@ -1,4 +1,4 @@
-# new_service.py — Go + gRPC Service Generator
+# generate_go_project.py — Go + gRPC Service Generator
 
 A small Python tool that scaffolds a complete Go gRPC service with PostgreSQL. You answer two questions (project name and database name) and it generates a fully wired project: config, repository, service, handler, proto definition, and `main.go`.
 
