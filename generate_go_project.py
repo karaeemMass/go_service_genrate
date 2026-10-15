@@ -485,6 +485,9 @@ protoc --go_out=. --go_opt=module=__MODULE__ \
 go run ./cmd/server
 ```
 
+On Windows, run `genr.bat` to generate the protobuf code. `post.bat` stages,
+commits, and pushes the project to `origin main`.
+
 All settings live in `cmd/server/config.yaml`.
 
 ## Structure
@@ -496,6 +499,58 @@ All settings live in `cmd/server/config.yaml`.
 - `internal/repository`: database layer
 - `internal/model`     : structs
 - `proto`              : protobuf definitions
+- `genr.bat`           : generate protobuf code on Windows
+- `post.bat`           : commit and push changes to `origin main`
+"""
+
+FILES["genr.bat"] = r"""@echo off
+setlocal
+cd /d "%~dp0"
+
+where protoc >nul 2>nul
+if errorlevel 1 (
+  echo protoc was not found on PATH.
+  exit /b 1
+)
+
+set "PLUGIN_DIR="
+for /f "delims=" %%i in ('go env GOBIN 2^>nul') do if not "%%i"=="" set "PLUGIN_DIR=%%i"
+if not defined PLUGIN_DIR for /f "delims=" %%i in ('go env GOPATH 2^>nul') do set "PLUGIN_DIR=%%i\bin"
+
+if not exist "%PLUGIN_DIR%\protoc-gen-go.exe" (
+  echo protoc-gen-go was not found in "%PLUGIN_DIR%"
+  echo Install it with:
+  echo   go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+  exit /b 1
+)
+if not exist "%PLUGIN_DIR%\protoc-gen-go-grpc.exe" (
+  echo protoc-gen-go-grpc was not found in "%PLUGIN_DIR%"
+  echo Install it with:
+  echo   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+  exit /b 1
+)
+
+protoc ^
+  --plugin=protoc-gen-go="%PLUGIN_DIR%\protoc-gen-go.exe" ^
+  --plugin=protoc-gen-go-grpc="%PLUGIN_DIR%\protoc-gen-go-grpc.exe" ^
+  --go_out=. --go_opt=module=__MODULE__ ^
+  --go-grpc_out=. --go-grpc_opt=module=__MODULE__ ^
+  proto/user.proto
+if errorlevel 1 exit /b 1
+
+endlocal
+"""
+
+FILES["post.bat"] = r"""@echo off
+set /p "message=Enter commit message: "
+
+git add .
+if errorlevel 1 exit /b 1
+
+git commit -m "%message%"
+if errorlevel 1 exit /b 1
+
+git push origin main
 """
 
 
